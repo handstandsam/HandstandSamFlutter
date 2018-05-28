@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'dart:async' show Future;
-import 'package:flutter/services.dart' show rootBundle;
-
-//void main() => runApp(new NavigatorApp());
-
-// void main() {  runApp(new AnimatedListSample());}
+import 'package:flutter_app/photos_repo.dart';
 
 class NavigatorApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -14,24 +8,11 @@ class NavigatorApp extends StatelessWidget {
     return new MaterialApp(
       title: 'Flutter Demo',
       theme: new ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or press Run > Flutter Hot Reload in IntelliJ). Notice that the
-        // counter didn't reset back to zero; the application is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: new FirstScreen(),
+      home: new SecondScreen(),
     );
   }
-}
-
-Future<String> loadAsset() async {
-  var futureString = await rootBundle.loadString('assets/handstandsam.json');
-  return futureString;
 }
 
 class FirstScreen extends StatelessWidget {
@@ -61,26 +42,69 @@ class SecondScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: new AppBar(
-        title: new Text("Second Screen"),
+        title: new Text("HandstandSam"),
       ),
-      body: new Center(
-        child: new RaisedButton(
-          onPressed: () {
-            loadAsset().then((str) {
-              Map<String, dynamic> jsonObj = JSON.decode(str);
-              print(jsonObj.keys);
-
-              Map<String, dynamic> photosMap = jsonObj['photosMap'];
-              for (String key in photosMap.keys) {
-                dynamic photo = photosMap[key];
-                print(photo['url_s']);
-              }
-            });
-            Navigator.pop(context);
-          },
-          child: new Text('Go back!'),
-        ),
-      ),
+      body: new Center(child: MyStatefulListWidget()),
     );
+  }
+}
+
+class MyStatefulListWidget extends StatefulWidget {
+  @override
+  _MyState2 createState() => new _MyState2();
+}
+
+class PhotoListItemWidget extends StatelessWidget {
+  Photo photo;
+  PhotoListItemWidget(Photo photo) {
+    this.photo = photo;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [Image.network(photo.url), Text(photo.title)]);
+  }
+}
+
+class _MyState2 extends State<MyStatefulListWidget> {
+  bool _loading = true;
+
+  List<Photo> _photos = <Photo>[
+    Photo("hi", "https://flutter.io/images/flutter-mark-square-100.png")
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    PhotosRepo().getPhotos().then((photos) {
+      _photos = photos;
+      print("Got _photos: " + _photos.length.toString());
+      _loading = false;
+    });
+  }
+
+  List<Widget> createWigetArray() {
+    print("createWigetArray");
+    List<Widget> widgetList = List();
+    for (var i = 0; i < _photos.length; i++) {
+      Photo photo = _photos[i];
+      if (i < 5) {
+        widgetList.add(PhotoListItemWidget(photo));
+      } else {
+        widgetList.add(new Text('${photo.title}'));
+      }
+    }
+    return widgetList;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    print("build loading: $_loading");
+
+    return new ListView(
+        children: _loading
+            ? []
+            : createWigetArray() // when the state of loading changes from true to false, it'll force this widget to reload
+        );
   }
 }
